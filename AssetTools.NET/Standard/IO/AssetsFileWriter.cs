@@ -123,6 +123,11 @@ namespace AssetsTools.NET
         {
             while (BaseStream.Position % 16 != 0) Write((byte)0x00);
         }
+        /// <summary>Comparable to Align, Align8 and Align16 - just with a custom alignment specified by the <paramref name="alignment"/> parameter.</summary>
+        public void AlignTo(uint alignment)
+        {
+            while (BaseStream.Position % alignment != 0) Write((byte)0x00);
+        }
         public void WriteNullTerminated(string text)
         {
             WriteRawString(text);

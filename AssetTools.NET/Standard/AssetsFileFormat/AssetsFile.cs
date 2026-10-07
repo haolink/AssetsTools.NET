@@ -58,7 +58,9 @@ namespace AssetsTools.NET
         /// </summary>
         /// <param name="writer">The writer to use.</param>
         /// <param name="filePos">Where in the stream to start writing. Use -1 to start writing at the current stream position.</param>
-        public void Write(AssetsFileWriter writer, long filePos = 0)
+        /// <param name="dataAlignment">Alignment for object data area and respective object data. PC/desktop go with 8 (default), other platforms may differ (PS5 seems to have 16).</param>
+        /// <param name="padDataOffset">In default cases, data starts at 0x1000 for standalone files. Set to false for bundle-embedded files, where data is aligned according to <paramref name="dataAlignment"/>.</param>
+        public void Write(AssetsFileWriter writer, long filePos = 0, uint dataAlignment = 8, bool padDataOffset = true)
         {
             long writeStart = filePos;
             if (filePos == -1)
@@ -124,7 +126,7 @@ namespace AssetsTools.NET
             newMetadata.Write(writer, Header.Version);
             int newMetadataSize = (int)(writer.Position - newMetadataStart);
 
-            if (writer.Position < 0x1000)
+            if (padDataOffset && writer.Position < 0x1000)
             {
                 // for padding only: if we're already past address 0x1000, this is skipped
                 while (writer.Position < 0x1000)
@@ -134,11 +136,15 @@ namespace AssetsTools.NET
             }
             else
             {
-                // otherwise align to 16 bytes, even if already aligned
-                if (writer.Position % 16 == 0)
-                    writer.Position += 16;
+                // otherwise align, even if already aligned
+                if (writer.Position % dataAlignment == 0)
+                {
+                    writer.Position += dataAlignment;
+                }
                 else
-                    writer.Align16();
+                {
+                    writer.AlignTo(dataAlignment);
+                }
             }
 
             long newFirstFileOffset = writer.Position;
@@ -165,7 +171,7 @@ namespace AssetsTools.NET
                 assetInfo.ByteSize = (uint)(writer.Position - startPosition);
 
                 if (i != newAssetInfos.Count - 1)
-                    writer.Align8();
+                    writer.AlignTo(dataAlignment);
             }
 
             long newFileSize = writer.Position - writeStart;

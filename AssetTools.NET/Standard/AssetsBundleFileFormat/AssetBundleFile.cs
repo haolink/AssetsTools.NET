@@ -82,7 +82,8 @@ namespace AssetsTools.NET
         /// </summary>
         /// <param name="writer">The writer to use.</param>
         /// <param name="filePos">Where in the stream to start writing. Use -1 to start writing at the current stream position.</param>
-        public void Write(AssetsFileWriter writer, long filePos = 0)
+        /// <param name="dirInfoAlignment">If set, each directory info is aligned to the specified number of bytes. (Only necessary on seemingly some platforms like PS5).</param>
+        public void Write(AssetsFileWriter writer, long filePos = 0, uint? dirInfoAlignment = null)
         {
             if (Header == null)
                 throw new Exception("Header must be loaded! (Did you forget to call bundle.Read?)");
@@ -185,6 +186,10 @@ namespace AssetsTools.NET
             for (int i = 0; i < dirInfos.Count; i++)
             {
                 AssetBundleDirectoryInfo dirInfo = dirInfos[i];
+                if (dirInfoAlignment.HasValue)
+                {
+                    writer.AlignTo(dirInfoAlignment.Value);
+                }
                 long startPosition = writer.Position;
                 long newOffset = startPosition - assetDataPos;
 
@@ -201,6 +206,12 @@ namespace AssetsTools.NET
 
                 dirInfo.Offset = newOffset;
                 dirInfo.DecompressedSize = writer.Position - startPosition;
+            }
+
+            // the alignment is also required on these platforms after the directory infos
+            if (dirInfoAlignment.HasValue)
+            {
+                writer.AlignTo(dirInfoAlignment.Value);
             }
 
             // now that we know what the sizes are of the written files, let's go back and fix them
